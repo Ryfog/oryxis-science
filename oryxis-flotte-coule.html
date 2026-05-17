@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oryxis — Flotte ou Coule ?</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',sans-serif;overflow:hidden;height:100vh;width:100vw;}
+#game{width:100%;height:100%;position:relative;overflow:hidden;background:#1a8fd0;}
+
+/* BG */
+.bg-wall{position:absolute;inset:0;background-color:#1e9de0;
+  background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);
+  background-size:42px 42px;}
+.bg-wall::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 30% 40%,rgba(255,255,255,.06) 0%,transparent 55%);}
+
+/* HEADER */
+.hdr{position:absolute;top:0;left:0;right:0;height:56px;background:rgba(0,40,100,.45);
+  backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:space-between;padding:0 22px;z-index:60;}
+.logo{font-size:1.2rem;font-weight:900;color:#fff;}
+.logo em{color:#7fff6e;font-style:normal;}
+.logo-sub{font-size:.6rem;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-left:6px;}
+.hdr-r{display:flex;align-items:center;gap:12px;}
+.pill{background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.28);border-radius:100px;
+  padding:4px 16px;font-size:.85rem;font-weight:800;color:#fff;}
+.hearts{font-size:1.25rem;letter-spacing:2px;}
+
+/* PROFESSOR */
+.prof-wrap{position:absolute;z-index:40;left:12px;display:flex;flex-direction:column;align-items:flex-start;}
+.speech{background:#fff;border-radius:18px;padding:10px 15px;max-width:215px;
+  font-size:.85rem;font-weight:800;color:#1a3a6a;line-height:1.5;
+  box-shadow:0 4px 18px rgba(0,0,0,.22);position:relative;}
+.speech::after{content:'';position:absolute;bottom:-13px;left:22px;
+  border:7px solid transparent;border-top-color:#fff;}
+.prof-svg{width:84px;margin-top:4px;}
+
+/* SURPRISE BADGE */
+.surprise-badge{position:absolute;top:62px;right:14px;z-index:55;
+  background:linear-gradient(135deg,#ff6f00,#ffd600);border-radius:12px;
+  padding:7px 14px;font-size:.72rem;font-weight:900;color:#fff;
+  box-shadow:0 4px 14px rgba(255,111,0,.4);text-align:center;line-height:1.5;
+  border:2px solid rgba(255,255,255,.3);}
+
+/* HANG CANVAS */
+.hang-wrap{position:absolute;top:56px;left:0;right:0;z-index:30;}
+#hangCv{display:block;width:100%;}
+
+/* OBJECT */
+#objEmoji{position:absolute;z-index:35;font-size:5rem;line-height:1;text-align:center;
+  transform-origin:top center;animation:sway 3.2s ease-in-out infinite alternate;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));pointer-events:none;}
+@keyframes sway{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
+
+/* OBJECT LABEL */
+#objLabel{position:absolute;z-index:36;background:rgba(0,0,0,.55);color:#fff;
+  border-radius:10px;padding:4px 14px;font-size:.78rem;font-weight:800;
+  pointer-events:none;backdrop-filter:blur(4px);white-space:nowrap;}
+
+/* SCISSORS */
+#scisCursor{position:fixed;pointer-events:none;z-index:9999;font-size:2.2rem;
+  transform:rotate(-45deg);display:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));}
+
+/* ROPE ZONE */
+#ropeZone{position:absolute;z-index:36;cursor:none;}
+
+/* BUTTONS */
+.btn-wrap{position:absolute;z-index:50;left:50%;transform:translateX(-50%);display:flex;gap:20px;}
+.abtn{padding:14px 44px;font-family:'Nunito',sans-serif;font-weight:900;font-size:1.45rem;
+  color:#fff;border:none;border-radius:18px;cursor:pointer;transition:all .18s;
+  box-shadow:0 6px 22px rgba(0,0,0,.32),inset 0 2px 0 rgba(255,255,255,.22);
+  position:relative;overflow:hidden;}
+.abtn::after{content:'';position:absolute;inset:0;transition:.18s;background:rgba(255,255,255,0);}
+.abtn:hover:not(:disabled)::after{background:rgba(255,255,255,.12);}
+.abtn:hover:not(:disabled){transform:translateY(-4px);}
+.abtn:disabled{opacity:.5;cursor:not-allowed;}
+.abtn-f{background:linear-gradient(135deg,#1e88e5,#0d47a1);}
+.abtn-c{background:linear-gradient(135deg,#e53935,#b71c1c);}
+.abtn.sel-f{box-shadow:0 0 0 5px rgba(30,136,229,.65),0 6px 22px rgba(0,0,0,.32);}
+.abtn.sel-c{box-shadow:0 0 0 5px rgba(229,57,53,.65),0 6px 22px rgba(0,0,0,.32);}
+
+/* CUT HINT */
+.cut-hint{position:absolute;z-index:50;left:50%;transform:translateX(-50%);
+  background:rgba(255,220,0,.96);color:#333;border-radius:13px;
+  padding:8px 26px;font-size:1rem;font-weight:900;
+  box-shadow:0 4px 18px rgba(0,0,0,.28);pointer-events:none;display:none;
+  animation:hintPop .9s ease-in-out infinite alternate;white-space:nowrap;}
+@keyframes hintPop{from{transform:translateX(-50%) scale(1)}to{transform:translateX(-50%) scale(1.07)}}
+
+/* WATER */
+.water-wrap{position:absolute;bottom:0;left:0;right:0;z-index:20;overflow:hidden;}
+#waterCv{display:block;width:100%;}
+.pool-l,.pool-r,.pool-b{position:absolute;background:rgba(15,60,140,.8);z-index:21;}
+.pool-l{left:0;top:0;bottom:0;width:16px;border-right:3px solid rgba(255,255,255,.14);}
+.pool-r{right:0;top:0;bottom:0;width:16px;border-left:3px solid rgba(255,255,255,.14);}
+.pool-b{bottom:0;left:0;right:0;height:14px;border-top:3px solid rgba(255,255,255,.14);}
+
+/* RESULT CARD */
+.result-card{position:absolute;z-index:55;left:50%;transform:translateX(-50%);
+  background:#fff;border-radius:20px;padding:18px 24px;max-width:450px;width:88vw;
+  text-align:center;box-shadow:0 10px 36px rgba(0,0,0,.32);display:none;}
+.result-card.show{display:block;animation:cardUp .45s cubic-bezier(.34,1.56,.64,1);}
+@keyframes cardUp{from{transform:translateX(-50%) translateY(24px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.rc-obj{font-size:2.8rem;margin-bottom:4px;}
+.rc-result{font-size:1.05rem;font-weight:900;margin-bottom:6px;}
+.rc-correct{background:#e8f5e9;border:3px solid #43a047;border-radius:12px;padding:5px 16px;
+  color:#1b5e20;display:inline-block;margin-bottom:7px;}
+.rc-wrong{background:#ffebee;border:3px solid #e53935;border-radius:12px;padding:5px 16px;
+  color:#b71c1c;display:inline-block;margin-bottom:7px;}
+.rc-density{font-family:monospace;font-size:.73rem;background:#f0f0f0;border-radius:7px;
+  padding:3px 12px;color:#555;display:inline-block;margin-bottom:7px;}
+.rc-surprise{background:linear-gradient(135deg,#fff3e0,#fff8e1);border:2px solid #ffb300;
+  border-radius:12px;padding:8px 14px;font-size:.8rem;color:#e65100;font-weight:700;
+  margin-bottom:7px;text-align:left;}
+.rc-surprise::before{content:'🤯 ';font-size:1rem;}
+.rc-fact{font-size:.8rem;color:#444;line-height:1.65;}
+.rc-btn{margin-top:12px;background:linear-gradient(135deg,#1b5e3b,#43a047);color:#fff;
+  border:none;border-radius:12px;padding:10px 34px;font-family:'Nunito',sans-serif;
+  font-weight:900;font-size:.95rem;cursor:pointer;transition:.2s;
+  box-shadow:0 4px 14px rgba(0,0,0,.2);}
+.rc-btn:hover{transform:scale(1.07);}
+
+/* PROGRESS */
+.prog-bar{position:absolute;bottom:0;left:0;right:0;height:38px;background:rgba(0,0,0,.38);
+  display:flex;align-items:center;padding:0 14px;gap:7px;z-index:52;}
+.qlabel{font-size:.78rem;font-weight:800;color:rgba(255,255,255,.7);white-space:nowrap;}
+.dots{display:flex;gap:4px;flex:1;flex-wrap:wrap;align-items:center;}
+.dot{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.18);
+  border:2px solid rgba(255,255,255,.28);transition:.4s;
+  display:flex;align-items:center;justify-content:center;font-size:.68rem;}
+.dot.ok{background:#43a047;border-color:#66bb6a;}
+.dot.ko{background:#e53935;border-color:#ef5350;}
+
+/* END */
+#endScreen{position:absolute;inset:0;z-index:100;
+  background:linear-gradient(135deg,#0d47a1,#1976d2);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+#endScreen.show{display:flex;}
+.end-t{font-size:2.6rem;font-weight:900;color:#fff;text-align:center;}
+.end-stars{font-size:3rem;text-align:center;letter-spacing:4px;}
+.end-s{font-size:1.2rem;font-weight:900;color:#7fff6e;text-align:center;}
+.end-d{font-size:.9rem;color:rgba(255,255,255,.72);text-align:center;max-width:360px;line-height:1.7;}
+.end-replay{background:#fff;color:#0d47a1;border:none;border-radius:14px;
+  padding:13px 42px;font-family:'Nunito',sans-serif;font-weight:900;
+  font-size:1.05rem;cursor:pointer;transition:.2s;box-shadow:0 6px 22px rgba(0,0,0,.3);}
+.end-replay:hover{transform:scale(1.07);}
+
+/* Splash */
+.splash{position:absolute;pointer-events:none;z-index:28;border-radius:50%;
+  background:rgba(120,210,255,.85);animation:splOut .55s ease-out forwards;}
+@keyframes splOut{0%{transform:scale(0) translate(0,0);opacity:1}100%{transform:scale(1) translate(var(--tx),var(--ty));opacity:0}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="bg-wall"></div>
+
+  <div class="hdr">
+    <div class="logo">ORYXIS <em>⚗️</em><span class="logo-sub">Flotte ou Coule ?</span></div>
+    <div class="hdr-r">
+      <div class="hearts" id="hearts">❤️❤️❤️</div>
+      <div class="pill">⭐ <span id="pts">0</span></div>
+    </div>
+  </div>
+
+  <!-- SURPRISE BADGE -->
+  <div class="surprise-badge">🤯 Objets<br>surprenants !</div>
+
+  <!-- PROFESSOR + SPEECH -->
+  <div class="prof-wrap" id="profWrap">
+    <div class="speech" id="speech">Est-ce que cet objet <b>flotte</b> ou <b>coule</b> ?</div>
+    <svg class="prof-svg" viewBox="0 0 90 140" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="72" width="60" height="65" rx="10" fill="#f0f0f0"/>
+      <rect x="15" y="72" width="28" height="65" rx="10" fill="#e8e8e8"/>
+      <rect x="35" y="74" width="20" height="40" rx="4" fill="#dde3f0"/>
+      <polygon points="45,80 41,100 45,96 49,100" fill="#d32f2f"/>
+      <rect x="2" y="72" width="16" height="48" rx="8" fill="#f0f0f0"/>
+      <rect x="72" y="72" width="16" height="48" rx="8" fill="#f0f0f0"/>
+      <circle cx="10" cy="75" r="7" fill="#f5c8a0"/>
+      <circle cx="80" cy="120" r="7" fill="#f5c8a0"/>
+      <line x1="80" y1="122" x2="55" y2="60" stroke="#8B4513" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="45" cy="44" rx="28" ry="30" fill="#f5c8a0"/>
+      <path d="M18 38 Q22 10 45 14 Q68 10 72 38 Q68 22 45 22 Q22 22 18 38Z" fill="#d4a017"/>
+      <path d="M22 20 Q20 8 26 12" stroke="#d4a017" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M35 15 Q34 4 40 8" stroke="#d4a017" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M50 15 Q52 4 56 8" stroke="#d4a017" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M62 20 Q66 8 68 14" stroke="#d4a017" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="34" cy="44" r="7" fill="#fff" stroke="#333" stroke-width="1"/>
+      <circle cx="56" cy="44" r="7" fill="#fff" stroke="#333" stroke-width="1"/>
+      <circle cx="36" cy="44" r="4" fill="#333"/>
+      <circle cx="58" cy="44" r="4" fill="#333"/>
+      <circle cx="37" cy="43" r="1.5" fill="#fff"/>
+      <circle cx="59" cy="43" r="1.5" fill="#fff"/>
+      <rect x="26" y="38" width="17" height="12" rx="4" fill="none" stroke="#555" stroke-width="2"/>
+      <rect x="47" y="38" width="17" height="12" rx="4" fill="none" stroke="#555" stroke-width="2"/>
+      <line x1="43" y1="43" x2="47" y2="43" stroke="#555" stroke-width="2"/>
+      <ellipse cx="45" cy="52" rx="4" ry="3" fill="#e8b090"/>
+      <path d="M36 60 Q45 68 54 60" stroke="#c07050" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <rect x="22" y="134" width="18" height="8" rx="4" fill="#2c3e50"/>
+      <rect x="50" y="134" width="18" height="8" rx="4" fill="#2c3e50"/>
+    </svg>
+  </div>
+
+  <div class="hang-wrap" id="hangWrap"><canvas id="hangCv"></canvas></div>
+  <div id="objEmoji"></div>
+  <div id="objLabel"></div>
+  <div id="scisCursor">✂️</div>
+  <div id="ropeZone"></div>
+
+  <div class="btn-wrap" id="btnWrap">
+    <button class="abtn abtn-f" id="btnF" onclick="pickAnswer(true)">🌊 Flotte</button>
+    <button class="abtn abtn-c" id="btnC" onclick="pickAnswer(false)">⬇️ Coule</button>
+  </div>
+
+  <div class="cut-hint" id="cutHint">✂️ Coupe la corde pour voir !</div>
+
+  <!-- RESULT CARD -->
+  <div class="result-card" id="resultCard">
+    <div class="rc-obj" id="rcObj"></div>
+    <div class="rc-result" id="rcResult"></div>
+    <div id="rcJudge"></div>
+    <div class="rc-density" id="rcDensity"></div>
+    <div class="rc-surprise" id="rcSurprise"></div>
+    <div class="rc-fact" id="rcFact"></div>
+    <button class="rc-btn" onclick="nextObj()">Objet suivant →</button>
+  </div>
+
+  <div class="water-wrap" id="waterWrap">
+    <canvas id="waterCv"></canvas>
+    <div class="pool-l"></div><div class="pool-r"></div><div class="pool-b"></div>
+  </div>
+
+  <div class="prog-bar">
+    <div class="qlabel" id="qlabel">1 / 20</div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <div id="endScreen">
+    <div class="end-t">🎉 Partie terminée !</div>
+    <div class="end-stars" id="endStars"></div>
+    <div class="end-s" id="endS"></div>
+    <div class="end-d" id="endD"></div>
+    <button class="end-replay" onclick="startGame()">🔄 Rejouer</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  20 OBJETS CONTRE-INTUITIFS
+//  f = true → flotte | false → coule
+// ═══════════════════════════════════════════
+const ALLOBJ = [
+  // ── FLOTTENT (surprenant) ──
+  {
+    n:'Pierre ponce', e:'🪨', f:true, d:'0.25 g/cm³',
+    surprise:'Une ROCHE qui flotte ?! Oui ! La pierre ponce est d\'origine volcanique, remplie de bulles d\'air emprisonnées lors du refroidissement de la lave.',
+    info:'C\'est la seule roche qui flotte naturellement. Elle est tellement légère qu\'on l\'utilise pour poncer la peau !'
+  },
+  {
+    n:'Bougie de paraffine', e:'🕯️', f:true, d:'0.90 g/cm³',
+    surprise:'La cire de paraffine est MOINS dense que l\'eau — une bougie entière flotte !',
+    info:'Toutes les cires (paraffine, cire d\'abeille) sont moins denses que l\'eau. C\'est pour ça que la cire fondue remonte à la surface dans un verre d\'eau.'
+  },
+  {
+    n:'Morceau de beurre', e:'🧈', f:true, d:'0.91 g/cm³',
+    surprise:'Le beurre flotte ! Toutes les graisses animales et végétales sont moins denses que l\'eau.',
+    info:'L\'huile, le beurre, la margarine flottent tous. La densité des graisses (0.88–0.93) est toujours inférieure à 1 g/cm³.'
+  },
+  {
+    n:'Pastèque entière', e:'🍉', f:true, d:'0.92 g/cm³',
+    surprise:'Une pastèque de 10 kg FLOTTE ! Elle semble immense et lourde, mais sa chair est pleine d\'eau et d\'air.',
+    info:'Malgré sa taille, la pastèque est moins dense que l\'eau. Les agriculteurs le savaient — ils la faisaient flotter pour la transport !'
+  },
+  {
+    n:'Carotte', e:'🥕', f:true, d:'0.64 g/cm³',
+    surprise:'La carotte flotte ! Avec une densité de 0.64 g/cm³, elle est bien plus légère qu\'on ne le pense.',
+    info:'Les légumes-racines comme la carotte sont remplis de fibres légères et d\'eau. Beaucoup de légumes flottent contrairement aux idées reçues.'
+  },
+  {
+    n:'Maïs en épi', e:'🌽', f:true, d:'~0.85 g/cm³',
+    surprise:'L\'épi de maïs flotte grâce à son cœur (le rafle) rempli de fibres très légères et d\'air.',
+    info:'Les paysans amérindiens testaient la maturité du maïs en le plongeant dans l\'eau. Un épi qui flotte = maïs sucré prêt à manger !'
+  },
+  {
+    n:'Orange AVEC écorce', e:'🍊', f:true, d:'0.84 g/cm³',
+    surprise:'L\'orange flotte AVEC son écorce, mais COULE sans ! L\'écorce est pleine de poches d\'air qui la rendent légère.',
+    info:'Essaie chez toi : orange entière → flotte. Orange pelée → coule. L\'écorce change tout !'
+  },
+  {
+    n:'Œuf POURRI', e:'🥚', f:true, d:'< 1 g/cm³',
+    surprise:'Un œuf pourri FLOTTE ! La décomposition produit des gaz à l\'intérieur qui le rendent plus léger que l\'eau.',
+    info:'C\'est le test classique de fraîcheur ! Œuf frais → coule. Œuf de quelques semaines → se dresse debout. Œuf pourri → flotte. Ne jamais manger un œuf qui flotte !'
+  },
+  {
+    n:'Crayon de bois', e:'✏️', f:true, d:'~0.65 g/cm³',
+    surprise:'Même avec son cœur en graphite (densité 2.2 !), un crayon entier flotte grâce au bois qui l\'entoure.',
+    info:'Le bois représente 95% du volume d\'un crayon. Sa densité moyenne reste bien sous 1 g/cm³. Le crayon flotte à l\'horizontale !'
+  },
+  {
+    n:'Citron AVEC peau', e:'🍋', f:true, d:'0.84 g/cm³',
+    surprise:'Le citron flotte AVEC sa peau, mais COULE sans ! L\'écorce est remplie de microscopiques poches d\'huile et d\'air.',
+    info:'Même expérience que l\'orange : enlève l\'écorce d\'un citron et il coule immédiatement. La peau fait toute la différence !'
+  },
+
+  // ── COULENT (surprenant) ──
+  {
+    n:'Raisin frais', e:'🍇', f:false, d:'1.06 g/cm³',
+    surprise:'Les raisins COULENT ! Leur chair est très sucrée et dense — 6% plus lourds que l\'eau.',
+    info:'Mais si tu mets un raisin dans du Coca-Cola, il monte et descend sans arrêt ! Les bulles de CO₂ s\'accrochent dessus et le font remonter, puis éclatent et il recoule.'
+  },
+  {
+    n:'Kiwi', e:'🥝', f:false, d:'1.05 g/cm³',
+    surprise:'Le kiwi coule ! Malgré sa petite taille et sa peau légère, sa chair dense et sucrée le fait couler.',
+    info:'La densité du kiwi est 1.05 g/cm³ — légèrement plus que l\'eau. Il coule lentement, contrairement à ce qu\'on imagine !'
+  },
+  {
+    n:'Myrtille', e:'🫐', f:false, d:'1.08 g/cm³',
+    surprise:'Les myrtilles coulent ! Ces petites baies sont bien plus denses que l\'eau à cause de leurs sucres concentrés.',
+    info:'La plupart des baies (myrtilles, cerises, raisins) coulent. Seules quelques baies légères comme les canneberges (cranberries) flottent !'
+  },
+  {
+    n:'Œuf FRAIS', e:'🥚', f:false, d:'1.08 g/cm³',
+    surprise:'Un œuf frais COULE dans l\'eau douce ! Contrairement à l\'œuf pourri qui flotte, l\'œuf frais est trop dense.',
+    info:'Dans l\'eau salée par contre, un œuf peut flotter (la mer est plus dense). Dans l\'eau de mer, même une personne flotte plus facilement !'
+  },
+  {
+    n:'Bois d\'ébène', e:'🪵', f:false, d:'1.2 g/cm³',
+    surprise:'Le bois d\'ébène est le SEUL bois courant qui COULE ! Tous les autres bois flottent. Il est si dense qu\'on l\'appelle "le bois de fer".',
+    info:'L\'ébène est utilisé pour les touches de piano et les manches d\'instruments. Sa densité extrême (1.2) lui permet même de couler dans l\'huile !'
+  },
+  {
+    n:'Cerise', e:'🍒', f:false, d:'1.06 g/cm³',
+    surprise:'Les cerises coulent ! Leur chair très sucrée et compacte les rend plus denses que l\'eau.',
+    info:'La prune, la cerise, l\'abricot — tous ces petits fruits à noyau coulent. Leur sucre concentré augmente leur densité au-dessus de 1 g/cm³.'
+  },
+  {
+    n:'Tomate', e:'🍅', f:false, d:'1.04 g/cm³',
+    surprise:'La tomate COULE ! À peine plus dense que l\'eau (1.04 g/cm³), elle coule doucement mais sûrement.',
+    info:'La tomate est composée à 94% d\'eau, mais les sucres et protéines la rendent légèrement plus dense. Beaucoup de gens pensent qu\'elle flotte !'
+  },
+  {
+    n:'Canette de Coca normal', e:'🥤', f:false, d:'1.04 g/cm³',
+    surprise:'Une canette de Coca COULE, mais une canette de Coca ZÉRO flotte ! La différence ? Le sucre augmente la densité.',
+    info:'C\'est l\'expérience de physique la plus amusante : Coca normal coule (sucre = densité 1.04), Coca Zero flotte (édulcorant = densité 0.99). Essaie chez toi !'
+  },
+  {
+    n:'Banane (sans peau)', e:'🍌', f:false, d:'0.98–1.05 g/cm³',
+    surprise:'La banane SANS peau coule ! La peau flotte (0.6 g/cm³), mais la chair seule est trop dense.',
+    info:'Une banane entière flotte à moitié (partiellement immergée). Mais si tu enlèves la peau, la chair coule. La peau fait tout la différence !'
+  },
+  {
+    n:'Citron SANS peau', e:'🍋', f:false, d:'1.06 g/cm³',
+    surprise:'Le citron SANS peau coule ! Enlever l\'écorce (remplie d\'air) fait passer la densité de 0.84 à 1.06.',
+    info:'L\'écorce de citron est légère et remplie de poches d\'air. Sans elle, la pulpe acide et sucrée est plus dense que l\'eau. Une écorce = tout change !'
+  },
+];
+
+// ═══════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════
+let objs=[], cur=0, score=0, lives=3;
+let phase='q';
+let playerAnswer=null;
+let results=[];
+let cutOk=false;
+let wTime=0, wCtx, wCv, hCtx, hCv;
+let ropeCX=0, ropeTopY=0, ropeLen=0;
+let waterTopPx=0;
+let fallRaf=null, bobRaf=null;
+let ripple={active:false,t:0};
+let W=0, H=0, poolH=0, hangH=0;
+
+function computeLayout(){
+  W=window.innerWidth; H=window.innerHeight;
+  poolH=Math.round(H*0.36);
+  hangH=H-56-poolH-38;
+  ropeLen=Math.min(Math.round(hangH*0.75),210);
+  ropeTopY=56+Math.round(hangH*0.04);
+  ropeCX=Math.round(W*0.65);
+  waterTopPx=H-poolH-38;
+}
+
+function startGame(){
+  document.getElementById('endScreen').classList.remove('show');
+  document.getElementById('resultCard').classList.remove('show');
+  objs=shuffle([...ALLOBJ]);
+  cur=0; score=0; lives=3; results=[];
+  computeLayout();
+  setupCanvases();
+  buildDots();
+  updateHearts(); updatePts();
+  showObj();
+  requestAnimationFrame(waterLoop);
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function setupCanvases(){
+  const hw=document.getElementById('hangWrap');
+  hw.style.height=hangH+'px';
+  hCv=document.getElementById('hangCv');
+  hCv.width=W; hCv.height=hangH;
+  hCtx=hCv.getContext('2d');
+  const ww=document.getElementById('waterWrap');
+  ww.style.height=(poolH+38)+'px';
+  wCv=document.getElementById('waterCv');
+  wCv.width=W; wCv.height=poolH+38;
+  wCtx=wCv.getContext('2d');
+  const pw=document.getElementById('profWrap');
+  const totalH=80+4+140;
+  const centerY=56+hangH/2;
+  pw.style.top=Math.max(62,centerY-totalH/2)+'px';
+  document.getElementById('btnWrap').style.bottom=(poolH+38+12)+'px';
+  document.getElementById('cutHint').style.bottom=(poolH+38+78)+'px';
+  document.getElementById('resultCard').style.bottom=(poolH+38+6)+'px';
+}
+
+// ─── ROPE ───
+function drawRope(cut=false,cutPhase=0,glowing=false){
+  const c=hCtx,cv=hCv;
+  c.clearRect(0,0,cv.width,cv.height);
+  const ty=ropeTopY-56;
+  if(cut){
+    const bY=ty+ropeLen*(0.38+cutPhase*0.28);
+    c.save();c.lineCap='round';c.lineWidth=5.5;c.strokeStyle='#8B4513';
+    c.shadowColor='rgba(0,0,0,.25)';c.shadowBlur=4;
+    c.beginPath();c.moveTo(ropeCX,ty+12);c.lineTo(ropeCX+12,bY);c.stroke();
+    c.beginPath();c.moveTo(ropeCX-10,bY);c.lineTo(ropeCX,ty+ropeLen+28);c.stroke();
+    c.restore();
+  } else {
+    c.save();
+    c.strokeStyle='#555';c.lineWidth=3.5;c.lineCap='round';
+    c.beginPath();c.arc(ropeCX,ty+7,8,Math.PI,0);c.stroke();
+    if(glowing){
+      c.shadowColor='rgba(255,220,0,1)';c.shadowBlur=20;
+      c.strokeStyle='rgba(255,220,0,.6)';c.lineWidth=13;
+      c.beginPath();c.moveTo(ropeCX,ty+12);c.lineTo(ropeCX,ty+ropeLen);c.stroke();
+      c.shadowBlur=0;
+    }
+    const g=c.createLinearGradient(ropeCX-3,ty,ropeCX+3,ty+ropeLen);
+    g.addColorStop(0,'#b06030');g.addColorStop(.5,'#8B4513');g.addColorStop(1,'#6b3410');
+    c.strokeStyle=g;c.lineWidth=6;c.lineCap='round';
+    c.shadowColor='rgba(0,0,0,.2)';c.shadowBlur=3;
+    c.beginPath();c.moveTo(ropeCX,ty+12);c.lineTo(ropeCX,ty+ropeLen);c.stroke();
+    for(let i=0;i<ropeLen-12;i+=14){
+      c.strokeStyle='rgba(0,0,0,.12)';c.lineWidth=1;c.shadowBlur=0;
+      c.beginPath();c.moveTo(ropeCX-3,ty+12+i);c.lineTo(ropeCX+3,ty+12+i+7);c.stroke();
+    }
+    c.restore();
+  }
+}
+
+// ─── SHOW OBJECT ───
+function showObj(){
+  if(cur>=20){endGame();return;}
+  phase='q'; cutOk=false; playerAnswer=null;
+  const obj=objs[cur];
+  document.getElementById('qlabel').textContent=`${cur+1} / 20`;
+  document.getElementById('speech').innerHTML=
+    `<b>${obj.n}</b><br>flotte ou coule ?`;
+  document.getElementById('resultCard').classList.remove('show');
+  document.getElementById('cutHint').style.display='none';
+  document.getElementById('btnWrap').style.display='flex';
+  document.getElementById('btnF').disabled=false;
+  document.getElementById('btnC').disabled=false;
+  document.getElementById('btnF').className='abtn abtn-f';
+  document.getElementById('btnC').className='abtn abtn-c';
+  drawRope(false,0,false);
+  // Object emoji
+  const oe=document.getElementById('objEmoji');
+  oe.textContent=obj.e;
+  oe.style.display='block';
+  oe.style.fontSize='5rem';
+  oe.style.opacity='1';
+  oe.style.transition='none';
+  oe.style.animation='sway 3.2s ease-in-out infinite alternate';
+  oe.style.left=(ropeCX-40)+'px';
+  oe.style.top=(ropeTopY+ropeLen-12)+'px';
+  oe.style.transform='';
+  // Object label
+  const ol=document.getElementById('objLabel');
+  ol.textContent=obj.n;
+  ol.style.display='block';
+  ol.style.left=Math.max(16,ropeCX-80)+'px';
+  ol.style.top=(ropeTopY+ropeLen+82)+'px';
+  // Rope zone
+  const rz=document.getElementById('ropeZone');
+  rz.style.left=(ropeCX-36)+'px';
+  rz.style.top=ropeTopY+'px';
+  rz.style.width='72px';
+  rz.style.height=ropeLen+'px';
+  rz.style.cursor='none';
+  rz.onclick=null;
+  rz.onmouseenter=null;rz.onmouseleave=null;rz.onmousemove=null;
+  document.getElementById('scisCursor').style.display='none';
+}
+
+// ─── PICK ANSWER ───
+function pickAnswer(floats){
+  if(phase!=='q')return;
+  phase='cut';
+  playerAnswer=floats;
+  document.getElementById('btnF').disabled=true;
+  document.getElementById('btnC').disabled=true;
+  document.getElementById('btnF').className='abtn abtn-f'+(floats?' sel-f':'');
+  document.getElementById('btnC').className='abtn abtn-c'+(!floats?' sel-c':'');
+  document.getElementById('speech').innerHTML='Maintenant,<br><b>coupe la corde !</b> ✂️';
+  document.getElementById('objLabel').style.display='none';
+  setTimeout(enableCut,200);
+}
+
+function enableCut(){
+  cutOk=true;
+  drawRope(false,0,true);
+  document.getElementById('cutHint').style.display='block';
+  const rz=document.getElementById('ropeZone');
+  const sc=document.getElementById('scisCursor');
+  rz.style.cursor='none';
+  rz.onmouseenter=()=>sc.style.display='block';
+  rz.onmouseleave=()=>sc.style.display='none';
+  rz.onmousemove=e=>{sc.style.left=(e.clientX-18)+'px';sc.style.top=(e.clientY-28)+'px';};
+  rz.onclick=doCut;
+  document.getElementById('game').addEventListener('click',ropeClickGlobal);
+}
+
+function ropeClickGlobal(e){
+  if(!cutOk||phase!=='cut')return;
+  if(Math.abs(e.clientX-ropeCX)<55&&e.clientY>=ropeTopY&&e.clientY<=ropeTopY+ropeLen) doCut();
+}
+
+// ─── CUT ───
+function doCut(){
+  if(!cutOk||phase!=='cut')return;
+  cutOk=false; phase='fall';
+  document.getElementById('game').removeEventListener('click',ropeClickGlobal);
+  document.getElementById('scisCursor').style.display='none';
+  document.getElementById('cutHint').style.display='none';
+  drawRope(true,0);
+  setTimeout(()=>drawRope(true,1),120);
+  setTimeout(()=>hCtx.clearRect(0,0,hCv.width,hCv.height),400);
+  const oe=document.getElementById('objEmoji');
+  oe.style.animation='none';
+  dropObj();
+}
+
+// ─── FALL PHYSICS ───
+function dropObj(){
+  const oe=document.getElementById('objEmoji');
+  let top=parseFloat(oe.style.top);
+  let vel=0;
+  const grav=0.9;
+  const target=waterTopPx-62;
+  if(fallRaf){cancelAnimationFrame(fallRaf);}
+  function step(){
+    vel+=grav; top+=vel;
+    oe.style.top=top+'px';
+    if(top<target) fallRaf=requestAnimationFrame(step);
+    else{oe.style.top=target+'px'; onHitWater();}
+  }
+  fallRaf=requestAnimationFrame(step);
+}
+
+function onHitWater(){
+  const obj=objs[cur];
+  const oe=document.getElementById('objEmoji');
+  spawnSplash(parseFloat(oe.style.left)+40,waterTopPx);
+  ripple.active=true; ripple.t=0;
+  if(obj.f){
+    const surfTop=waterTopPx-54;
+    oe.style.transition='top .5s cubic-bezier(.34,1.56,.64,1)';
+    oe.style.top=surfTop+'px';
+    setTimeout(()=>startBob(surfTop),500);
+  } else {
+    const sinkTop=H-38-14-66;
+    oe.style.transition='top 1.8s ease-in,opacity 1.4s ease-in';
+    oe.style.top=sinkTop+'px';
+    oe.style.opacity='0.18';
+  }
+  setTimeout(()=>showResult(obj),1700);
+}
+
+function startBob(baseTop){
+  if(bobRaf)cancelAnimationFrame(bobRaf);
+  let t=0;
+  const oe=document.getElementById('objEmoji');
+  function bobStep(){
+    t+=0.05;
+    oe.style.transition='none';
+    oe.style.top=(baseTop+Math.sin(t)*10)+'px';
+    bobRaf=requestAnimationFrame(bobStep);
+  }
+  bobRaf=requestAnimationFrame(bobStep);
+}
+
+// ─── RESULT (revealed AFTER water) ───
+function showResult(obj){
+  if(bobRaf){cancelAnimationFrame(bobRaf);bobRaf=null;}
+  phase='res';
+  const correct=(playerAnswer===obj.f);
+  if(correct){score+=100; results.push('ok');}
+  else{lives=Math.max(0,lives-1); results.push('ko');}
+  updateHearts(); updatePts();
+  updateDot(cur,correct?'ok':'ko');
+
+  document.getElementById('rcObj').textContent=obj.e;
+  document.getElementById('rcResult').textContent=
+    obj.f?`🌊 ${obj.n} FLOTTE !`:`⬇️ ${obj.n} COULE !`;
+
+  const jEl=document.getElementById('rcJudge');
+  if(correct) jEl.innerHTML='<div class="rc-correct">✅ Bonne réponse ! +100 pts</div>';
+  else jEl.innerHTML=`<div class="rc-wrong">❌ Tu as répondu ${playerAnswer?'Flotte':'Coule'}…</div>`;
+
+  document.getElementById('rcDensity').innerHTML=
+    `Densité : <b>${obj.d}</b> &nbsp;|&nbsp; Eau : <b>1 g/cm³</b>`;
+  document.getElementById('rcSurprise').textContent=obj.surprise;
+  document.getElementById('rcFact').textContent=obj.info;
+  document.getElementById('resultCard').classList.add('show');
+  document.getElementById('btnWrap').style.display='none';
+}
+
+function nextObj(){
+  if(bobRaf){cancelAnimationFrame(bobRaf);bobRaf=null;}
+  if(fallRaf){cancelAnimationFrame(fallRaf);fallRaf=null;}
+  const oe=document.getElementById('objEmoji');
+  oe.style.transition='none';oe.style.opacity='1';oe.style.top='0px';
+  document.getElementById('resultCard').classList.remove('show');
+  hCtx.clearRect(0,0,hCv.width,hCv.height);
+  cur++;
+  showObj();
+}
+
+// ─── WATER ───
+function waterLoop(ts){
+  requestAnimationFrame(waterLoop);
+  if(!wCtx)return;
+  wTime=ts*0.001;
+  const W2=wCv.width,H2=wCv.height;
+  wCtx.clearRect(0,0,W2,H2);
+  const wOff=24;
+  wCtx.save();
+  wCtx.beginPath();wCtx.moveTo(0,wOff);
+  for(let x=0;x<=W2;x+=3){
+    const w1=Math.sin(x*0.022+wTime*1.9)*7;
+    const w2=Math.sin(x*0.038-wTime*2.3)*4;
+    const rip=ripple.active?Math.sin(x*0.055-ripple.t*7)*12*Math.exp(-ripple.t*1.4):0;
+    wCtx.lineTo(x,wOff+w1+w2+rip);
+  }
+  wCtx.lineTo(W2,H2);wCtx.lineTo(0,H2);wCtx.closePath();
+  const grad=wCtx.createLinearGradient(0,0,0,H2);
+  grad.addColorStop(0,'rgba(25,120,210,.93)');
+  grad.addColorStop(0.35,'rgba(15,95,185,.9)');
+  grad.addColorStop(1,'rgba(8,55,145,.97)');
+  wCtx.fillStyle=grad;wCtx.fill();
+  for(let i=0;i<6;i++){
+    const y=36+i*30+Math.sin(wTime*0.9+i*1.1)*7;
+    wCtx.beginPath();
+    for(let x=14;x<W2-14;x++){
+      const v=Math.sin(x*0.028+wTime*2.1+i)*5;
+      if(x===14)wCtx.moveTo(x,y+v);else wCtx.lineTo(x,y+v);
+    }
+    wCtx.strokeStyle=`rgba(255,255,255,${0.05+i*0.01})`;wCtx.lineWidth=1.5;wCtx.stroke();
+  }
+  if(Math.random()<0.04){
+    const bx=20+Math.random()*(W2-40),by=45+Math.random()*(H2-55);
+    wCtx.beginPath();wCtx.arc(bx,by,1.5+Math.random()*3,0,Math.PI*2);
+    wCtx.strokeStyle='rgba(255,255,255,.3)';wCtx.lineWidth=1;wCtx.stroke();
+  }
+  wCtx.restore();
+  if(ripple.active){ripple.t+=0.045;if(ripple.t>3)ripple.active=false;}
+}
+
+// ─── SPLASH ───
+function spawnSplash(x,y){
+  const g=document.getElementById('game');
+  for(let i=0;i<22;i++){
+    const el=document.createElement('div');el.className='splash';
+    const angle=Math.random()*Math.PI;
+    const dist=18+Math.random()*65;
+    el.style.left=(x+Math.cos(angle)*8)+'px';el.style.top=(y-6)+'px';
+    const sz=(4+Math.random()*9)+'px';el.style.width=sz;el.style.height=sz;
+    el.style.setProperty('--tx',(Math.cos(angle)*dist)+'px');
+    el.style.setProperty('--ty',(-Math.sin(angle)*dist-18)+'px');
+    el.style.animationDuration=(.38+Math.random()*.35)+'s';
+    g.appendChild(el);setTimeout(()=>el.remove(),700);
+  }
+}
+
+// ─── DOTS ───
+function buildDots(){
+  const dc=document.getElementById('dots');dc.innerHTML='';
+  for(let i=0;i<20;i++){
+    const d=document.createElement('div');d.className='dot';d.id='d'+i;dc.appendChild(d);
+  }
+}
+function updateDot(i,res){
+  const d=document.getElementById('d'+i);if(!d)return;
+  if(res==='ok'){d.className='dot ok';d.textContent='✓';}
+  else{d.className='dot ko';d.textContent='✗';}
+}
+
+// ─── HEARTS / PTS ───
+function updateHearts(){document.getElementById('hearts').textContent='❤️'.repeat(lives)+'🖤'.repeat(3-lives);}
+function updatePts(){document.getElementById('pts').textContent=score;}
+
+// ─── END ───
+function endGame(){
+  const ok=results.filter(r=>r==='ok').length;
+  const pct=Math.round(ok/20*100);
+  const stars=pct>=90?'⭐⭐⭐':pct>=60?'⭐⭐':'⭐';
+  const msg=pct>=90?'Incroyable ! Tu as déjoué tous les pièges de la physique des fluides !'
+    :pct>=60?'Bien joué ! La densité et la poussée d\'Archimède n\'ont plus de secrets pour toi.'
+    :'Ces objets sont vraiment trompeurs ! Chaque objet t\'a appris quelque chose sur la densité.';
+  document.getElementById('endStars').textContent=stars;
+  document.getElementById('endS').textContent=`${score} pts — ${ok}/20 bonnes réponses (${pct}%)`;
+  document.getElementById('endD').textContent=msg;
+  document.getElementById('endScreen').classList.add('show');
+}
+
+window.addEventListener('resize',()=>{computeLayout();setupCanvases();});
+startGame();
+</script>
+</body>
+</html>
